@@ -36,12 +36,12 @@ public class PlayerHealth : MonoBehaviour
     private SpriteRenderer[] spriteRenderers;
     private Renderer[] playerRenderers;
     public SoundManager SoundManagerScript;
-    public AudioSource audioSourceAmbient;
+    public AudioSource audioSourceFire;
 
     void Start()
     {
         SoundManagerScript = GameObject.FindGameObjectWithTag("Audio").GetComponent<SoundManager>();
-        audioSourceAmbient = GameObject.FindGameObjectWithTag("Ambient").GetComponent<AudioSource>();
+        audioSourceFire = GameObject.FindGameObjectWithTag("Ambient").GetComponent<AudioSource>();
         currentLives = maxLives;
         pm = GetComponent<PlayerMovement>();
         rb = GetComponent<Rigidbody>();
@@ -100,7 +100,7 @@ public class PlayerHealth : MonoBehaviour
     {
         isDead = true; // Bloquea la cámara y el movimiento
         invincible = true;
-        audioSourceAmbient.mute = true;
+        audioSourceFire.mute = true;
 
         if (pm != null) pm.inAirBoost = false;
 
@@ -122,7 +122,7 @@ public class PlayerHealth : MonoBehaviour
         // Restauramos físicas y estado
         if (rb != null) rb.isKinematic = false;
 
-        audioSourceAmbient.mute = false;
+        audioSourceFire.mute = false;
         isDead = false; // La cámara ahora detecta la nueva posición y viaja hacia ella
         SetPlayerVisible(true);
 

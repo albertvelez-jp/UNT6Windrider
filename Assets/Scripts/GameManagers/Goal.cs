@@ -16,6 +16,8 @@ public class Goal : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
+        GameManager.instance.SaveCoinsToWallet();
+
         SoundManagerScript.SelectAudio(6, 1);
         Time.timeScale = 0.1f;
         victoryMenu.SetActive(true);

@@ -143,7 +143,7 @@ public class PlayerMovement : MonoBehaviour
             0f
         );
 
-        if (!isDashing && dashTimer <= 0f && !inAirBoost)
+        if (!isDashing && dashTimer <= 0f && !inAirBoost && !isForwardDashing)
         {
             if (Input.GetKeyDown(KeyCode.Mouse0))
             {
@@ -153,8 +153,6 @@ public class PlayerMovement : MonoBehaviour
 
                 if (Input.GetKey(KeyCode.A)) { dashDir += Vector3.left; hasLateralInput = true; rollDirection = 360f; }
                 if (Input.GetKey(KeyCode.D)) { dashDir += Vector3.right; hasLateralInput = true; rollDirection = -360f; }
-                if (Input.GetKey(KeyCode.W)) dashDir += Vector3.up;
-                if (Input.GetKey(KeyCode.S)) dashDir += Vector3.down;
 
                 if (dashDir != Vector3.zero)
                 {
@@ -173,7 +171,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (!isForwardDashing && forwardDashTimer <= 0f && !inAirBoost && Input.GetKeyDown(KeyCode.Space))
+        if (!isForwardDashing && forwardDashTimer <= 0f && !inAirBoost && !isDashing && Input.GetKeyDown(KeyCode.Space))
         {
             StartForwardDash();
             if (currentWhirlwind != null)
@@ -250,20 +248,39 @@ public class PlayerMovement : MonoBehaviour
     private IEnumerator DoRoll(float amount)
     {
         float elapsed = 0f;
-        Vector3 currentEuler = transform.rotation.eulerAngles;
-        float startZ = currentEuler.z;
 
-        while (elapsed < rollDuration)
+        // Guardamos rotación base con Z forzado a 0 exacto
+        Vector3 baseEuler = transform.rotation.eulerAngles;
+        baseEuler.z = 0f;
+        Quaternion startRotation = Quaternion.Euler(baseEuler);
+        transform.rotation = startRotation;
+
+        // Quitamos FreezeRotation para que el Rigidbody no luche contra nosotros
+        rb.constraints = RigidbodyConstraints.None;
+        rb.freezeRotation = false;
+
+        try
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / rollDuration;
-            float curveValue = rollCurve.Evaluate(t);
-            float zRotation = Mathf.Lerp(0, amount, curveValue);
-            transform.rotation = Quaternion.Euler(currentEuler.x, currentEuler.y, startZ + zRotation);
-            yield return null;
+            while (elapsed < rollDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / rollDuration);
+                float curveValue = rollCurve.Evaluate(t);
+                float currentAngle = Mathf.Lerp(0f, amount, curveValue);
+                transform.rotation = startRotation * Quaternion.AngleAxis(currentAngle, Vector3.forward);
+                yield return null;
+            }
         }
+        finally
+        {
+            // Reset EXACTO al inicio, Z = 0 garantizado
+            transform.rotation = startRotation;
+            rb.angularVelocity = Vector3.zero;
 
-        transform.rotation = Quaternion.Euler(currentEuler.x, currentEuler.y, startZ);
+            // Restauramos las constraints originales
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
+            rollCoroutine = null;
+        }
     }
 
     private void StartDash(Vector3 direction)
